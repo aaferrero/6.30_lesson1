@@ -164,6 +164,38 @@ def prob_2_(word1, word2):
         return 1 / len(TOKEN_2_GRAM)
 print(prob_2('保险', '年龄'))
 
+
+def TOKEN_W(w):                                    ###计算不同单词在预料中的次数，为了计算每个词的概率
+    return [w1 for w1 in TOKEN if w1==w]
+
+
+def prob_2_revise(word1, word2):
+    if word1 + word2 in words_count_2:
+        #print('{d} in models!'.format(d=word1 + word2))
+        return words_count_2[word1+word2] / len(TOKEN_W(word2))
+    else:
+        return 1 / len(TOKEN_2_GRAM)
+
+def get_probablity_revise(sentence):                ###修正联合概率公式
+    words = cut(sentence)
+
+    sentence_pro = 1
+
+    for i, word in enumerate(words[:-1]):
+        next_ = words[i + 1]
+
+        probability = prob_2_revise(word, next_)
+
+        sentence_pro *= probability
+    print('sentence_pro',sentence_pro)
+    sentence_pro*=len(TOKEN_W(next_))/len(TOKEN_2_GRAM)            ####Pr(w1,w2)=Pr(w1|w2)*Pr(w2)
+
+    return sentence_pro
+
+
+
+print(token('家庭保险是否覆盖屋顶瓦楞？')[0],get_probablity_revise(token('家庭保险是否覆盖屋顶瓦楞？')[0]))
+
 insurance_grammer = """
 start == body element statement
 statement==投保年龄描述1 | 投保年龄描述2 | 保险期间描述 | 交费方式描述 | 保险金额描述
@@ -190,3 +222,29 @@ print('\n\n\n排序后的输出:')
 for sorted_sentence in [dict_sorted_predict[number] for number in list_sorted]:
     print(sorted_sentence)
 
+insurance_grammer = """
+start == body element statement
+statement==投保年龄描述1 | 投保年龄描述2 | 保险期间描述 | 交费方式描述 | 保险金额描述
+body == null | 这份保险的 | 该保险的 |  该份保险的 |您买的这份保险的
+element == 投保年龄上限 |  投保年龄下限 | 保险期间 | 交费方式 | 保险金额
+投保年龄描述1 == 18周岁 | 16周岁 | 0周岁 | 30天 ，
+投保年龄描述2== 55周岁 | 60周岁 | 65周岁 | 70周岁 ，
+保险期间描述== 1年 | 5年 | 10年 | 30年 | 终身
+交费方式描述== 趸交 | 10年交 | 5年交 | 15年交 | 3年交 | 月交 
+保险金额描述== 10万元/每份 | 1万元/每份 | 根据投保年龄，交费期限等确定
+"""
+
+insurance_grammer=create_grammar(insurance_grammer,split='==')
+
+dict_sorted_predict={}
+list_sorted=[]
+print('修正概率公式后，排序前的输出:')
+for number in range(20):
+    generated_sentence=generate(gram=insurance_grammer, target='start')
+    print(generated_sentence)
+    list_sorted.append(get_probablity_revise(token(generated_sentence)[0]))
+    dict_sorted_predict[get_probablity_revise(token(generated_sentence)[0])]=generated_sentence
+list_sorted=sorted(list_sorted,reverse=True)
+print('\n\n\n 修正概率公式后，排序后的输出:')
+for sorted_sentence in [dict_sorted_predict[number] for number in list_sorted]:
+    print(sorted_sentence)
