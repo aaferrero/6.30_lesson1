@@ -125,8 +125,8 @@ def token(string):
     regex_str = ".*?([0-9\u4E00-\u9FA5]+)"
     return re.findall(regex_str, string)
 
-#words = ['study in 山海大学吾问无为谓','问问非常']
-#print(token(words))
+words = 'study in 山海大学吾问无为谓'
+print(token(words))
 
 import jieba
 
@@ -175,6 +175,18 @@ def prob_2(word1, word2):
         return 1 / len(TOKEN_2_GRAM)
 print(prob_2('保险', '年龄'))
 
+def TOKEN_W(w):                                    ###计算不同单词在预料中的次数，为了计算每个词的概率
+    return [w1 for w1 in TOKEN if w1==w]
+
+
+def prob_2_revise(word1, word2):
+    if word1 + word2 in words_count_2:
+        #print('{d} in models!'.format(d=word1 + word2))
+        return words_count_2[word1+word2] / len(TOKEN_W(word2))
+    else:
+        return 1 / len(TOKEN_2_GRAM)
+
+
 
 def get_probablity(sentence):
     words = cut(sentence)
@@ -190,7 +202,26 @@ def get_probablity(sentence):
 
     return sentence_pro
 
-print(get_probablity('家庭保险是否覆盖屋顶瓦楞？'))
+
+def get_probablity_revise(sentence):                ###修正联合概率公式
+    words = cut(sentence)
+
+    sentence_pro = 1
+
+    for i, word in enumerate(words[:-1]):
+        next_ = words[i + 1]
+
+        probability = prob_2_revise(word, next_)
+
+        sentence_pro *= probability
+    #print('sentence_pro',sentence_pro,next_)
+    sentence_pro*=len(TOKEN_W(next_))/len(TOKEN_2_GRAM)            ####Pr(w1,w2)=Pr(w1|w2)*Pr(w2)
+
+    return sentence_pro
+
+
+
+print(token('家庭保险是否覆盖屋顶瓦楞？')[0],get_probablity_revise(token('家庭保险是否覆盖屋顶瓦楞？')[0]))
 print('----------------------------------------------')
 
 
@@ -235,8 +266,8 @@ print('排序前的输出:')
 for number in range(20):
     generated_sentence=generate(gram=insurance_grammer, target='start')
     print(generated_sentence)
-    list_sorted.append(get_probablity_(generated_sentence))
-    dict_sorted_predict[get_probablity_(generated_sentence)]=generated_sentence
+    list_sorted.append(get_probablity_revise(token(generated_sentence)[0]))
+    dict_sorted_predict[get_probablity_revise(token(generated_sentence)[0])]=generated_sentence
 list_sorted=sorted(list_sorted,reverse=True)
 print('\n\n\n排序后的输出:')
 for sorted_sentence in [dict_sorted_predict[number] for number in list_sorted]:
@@ -374,7 +405,7 @@ print(subsitite("Hi, how do you do?".split(), pat_to_dict(pat_match_with_seg('?*
 def get_response(saying, response_rules):
     print('answer:')
     print(' '.join(subsitite(random.choice(list(response_rules.values())[0]).split(), pat_to_dict(pat_match_with_seg(list(rules.keys())[0].split(),
-                  saying.split())))).replace(' ',''))
+                  saying.split())))))
 
 rules = {
     "insurance age is ?*Y": ["what is insurance age?",'?Y is your insurance age?']
@@ -388,11 +419,16 @@ for number in range(10):
     print('ask:\n',saying)
     get_response(saying,rules)
 
+def get_response_chi(saying, response_rules):
+    print('answer:')
+    print(' '.join(subsitite(random.choice(list(response_rules.values())[0]).split(), pat_to_dict(pat_match_with_seg(list(rules.keys())[0].split(),
+                  saying.split())))).replace(' ',''))
+
 rules = {
     ' '.join(jieba.cut("投保年龄是"))+' ?*Y': [' '.join(jieba.cut("什么是投保年龄?")),'?Y '+' '.join(jieba.cut('是你的投保年龄?'))]
 }
 saying=' '.join(jieba.cut('投保年龄是18周岁'))
 for number in range(10):
     print('ask:\n',saying.replace(' ',''))
-    get_response(saying,rules)
+    get_response_chi(saying,rules)
 #jieba.cut()
